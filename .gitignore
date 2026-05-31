@@ -43,3 +43,6 @@ results/logs/*.log
 
 # Environment variables
 .env
+
+# Claude Code
+.claude/
