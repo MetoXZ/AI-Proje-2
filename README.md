@@ -37,7 +37,9 @@ pip install -r requirements.txt
 │   ├── indicators/
 │   │   └── technical.py       # Teknik indikatorler (RSI, MACD, BB, vb.)
 │   ├── ga/
-│   │   └── chromosome.py      # Kromozom yapisi, gen tanimlari, tamir fonk.
+│   │   ├── chromosome.py      # Kromozom yapisi, gen tanimlari, tamir fonk.
+│   │   ├── fitness.py         # Sharpe tabanli fitness ve backtest entegrasyonu
+│   │   └── operators.py       # Secim, caprazlama ve mutasyon operatorleri
 │   ├── strategy/              # Trading sinyalleri ve backtesting
 │   └── visualization/         # Grafik ve gorsellesitirme
 ├── data/
@@ -66,14 +68,23 @@ pip install -r requirements.txt
 # 1. Veri toplama
 python -m src.data.collector
 
-# 2. GA calistirma (Faz 3-4 sonrasi)
-python main.py
+# 2. GA fitness hattini ornek veriyle deneme
+python tests/test_ga.py
+```
+
+GA modulleri dogrudan import edilerek de kullanilabilir:
+
+```python
+from src.ga import create_individual, fitness_single
+
+individual = create_individual()
+score = fitness_single(individual, close_prices)
 ```
 
 ## Teknolojiler
 
 - **Python 3.10+**
 - **DEAP** - Genetik Algoritma
-- **pandas-ta** - Teknik indikatorler
+- **pandas / numpy** - Teknik indikatorler ve vektorel hesaplama
 - **yfinance** - BTC veri toplama
 - **matplotlib / plotly** - Gorsellesitirme

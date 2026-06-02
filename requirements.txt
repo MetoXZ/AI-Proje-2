@@ -1,7 +1,6 @@
-numpy>=1.24.0
+numpy>=1.24.0,<2.0.0
 pandas>=2.0.0
 deap>=1.4.0
-pandas-ta>=0.3.14
 yfinance>=0.2.0
 matplotlib>=3.7.0
 plotly>=5.15.0

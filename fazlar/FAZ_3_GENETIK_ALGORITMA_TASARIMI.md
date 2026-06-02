@@ -2,7 +2,7 @@
 
 **Sure:** Gun 2 - Sabah (1 Haziran Pazar)
 **Tarih:** 1 Haziran 2026
-**Durum:** Beklemede
+**Durum:** Kismen Tamamlandi (Mert kapsami tamamlandi)
 **Sorumlu:** Mert (Ana), Yigit (Destek)
 **Bagimlilik:** Faz 2 tamamlanmis olmali (onceki gun)
 
@@ -20,8 +20,8 @@ Trading stratejisi parametrelerini optimize edecek Genetik Algoritma motorunu ta
 **Sorumlu:** Mert
 **Sure:** 1 saat (09:00-10:00)
 
-- [ ] `src/ga/chromosome.py` modulunun gelistirilmesi
-- [ ] Kromozom (birey) yapisinin tanimlanmasi:
+- [x] `src/ga/chromosome.py` modulunun gelistirilmesi
+- [x] Kromozom (birey) yapisinin tanimlanmasi:
 
 #### Kromozom Genleri
 
@@ -88,7 +88,7 @@ def create_individual():
     return creator.Individual(individual)
 ```
 
-- [ ] Gen kısıtlamalari (constraints):
+- [x] Gen kısıtlamalari (constraints):
   - `macd_fast < macd_slow` olmali
   - `sma_short < sma_long` olmali
   - `rsi_oversold < rsi_overbought` olmali
@@ -98,8 +98,8 @@ def create_individual():
 **Sorumlu:** Mert & Mert Kerem
 **Sure:** 1.5 saat (10:00-11:30)
 
-- [ ] `src/ga/fitness.py` modulunun gelistirilmesi
-- [ ] Fitness fonksiyonunun tasarimi:
+- [x] `src/ga/fitness.py` modulunun gelistirilmesi
+- [x] Fitness fonksiyonunun tasarimi:
 
 #### Tek Amacli (Single-Objective) Fitness
 ```python
@@ -135,7 +135,7 @@ def fitness_multi(individual, data):
     return (sharpe, total_return, max_drawdown)
 ```
 
-- [ ] Performans metrikleri:
+- [x] Performans metrikleri:
 
 | Metrik | Formul | Aciklama |
 |--------|--------|----------|
@@ -146,7 +146,7 @@ def fitness_multi(individual, data):
 | Profit Factor | Brut Kar / Brut Zarar | Kar faktoru |
 | Sortino Ratio | (R_p - R_f) / sigma_down | Asagi yonlu risk-ayarli getiri |
 
-- [ ] Fitness fonksiyonunda **penalizasyon** mekanizmasi:
+- [x] Fitness fonksiyonunda **penalizasyon** mekanizmasi:
   - Cok az trade yapan stratejiler icin ceza (min. trade sayisi)
   - Kisitlamalari ihlal eden bireylere dusuk fitness degeri
 
@@ -154,13 +154,13 @@ def fitness_multi(individual, data):
 **Sorumlu:** Mert
 **Sure:** 1 saat (10:00-11:00, Fitness ile paralel)
 
-- [ ] `src/ga/operators.py` modulunun gelistirilmesi
+- [x] `src/ga/operators.py` modulunun gelistirilmesi
 
 #### Secim (Selection) Operatörleri
-- [ ] **Turnuva Secimi (Tournament Selection)**
+- [x] **Turnuva Secimi (Tournament Selection)**
   - Turnuva boyutu: 3-5
   - En basit ve etkili yontem
-- [ ] **Elitizm**
+- [x] **Elitizm**
   - Her nesilde en iyi N bireyin korunmasi
   - Elit boyutu: populasyonun %5-10'u
 
@@ -172,12 +172,12 @@ toolbox.register("select", tools.selNSGA2)
 ```
 
 #### Caprazlama (Crossover) Operatörleri
-- [ ] **Blend Crossover (BLX-alpha)**
+- [x] **Blend Crossover (BLX-alpha)**
   - Surekli degerler icin en uygun
   - alpha = 0.5
 - [ ] **Simulated Binary Crossover (SBX)**
   - Alternatif olarak denenebilir
-- [ ] Caprazlama orani: 0.7 - 0.9
+- [x] Caprazlama orani: 0.7 - 0.9
 
 ```python
 def blend_crossover(ind1, ind2, alpha=0.5):
@@ -195,10 +195,10 @@ def blend_crossover(ind1, ind2, alpha=0.5):
 ```
 
 #### Mutasyon (Mutation) Operatörleri
-- [ ] **Gaussian Mutasyon**
+- [x] **Gaussian Mutasyon**
   - Her gen icin farkli sigma degeri
   - Mutasyon orani: 0.1 - 0.3
-- [ ] **Uniform Mutasyon**
+- [x] **Uniform Mutasyon**
   - Gen sinirlar icinde rastgele deger atama
 - [ ] Adaptif mutasyon oranı (nesil ilerledikce azaltma) - opsiyonel
 
@@ -282,7 +282,7 @@ def run_ga(data, config):
 **Sorumlu:** Mert
 **Sure:** 30 dk (12:00-12:30, GA Motoru icinde)
 
-- [ ] Gecersiz bireylerin tamir edilmesi:
+- [x] Gecersiz bireylerin tamir edilmesi:
 ```python
 def repair_individual(individual):
     """Kisitlamalari ihlal eden genleri duzeltir."""
@@ -336,10 +336,10 @@ def repair_individual(individual):
 
 ## Basari Kriterleri
 
-- [ ] Kromozom yapisi tum parametreleri temsil ediyor
-- [ ] Fitness fonksiyonu anlamli skorlar uretiyor
-- [ ] GA operatörleri gen sinirlarini koruyor
-- [ ] Kisit ihlalleri otomatik tamir ediliyor
+- [x] Kromozom yapisi tum parametreleri temsil ediyor
+- [x] Fitness fonksiyonu anlamli skorlar uretiyor
+- [x] GA operatörleri gen sinirlarini koruyor
+- [x] Kisit ihlalleri otomatik tamir ediliyor
 - [ ] GA motoru kucuk bir ornekle sorunsuz calisiyor (10 birey, 5 nesil)
 - [ ] Nesil bazli istatistikler (avg, min, max fitness) loglanıyor
 - [ ] Tum birim testleri gecik

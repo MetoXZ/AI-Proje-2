@@ -31,10 +31,12 @@ Proje raporunu template'e uygun sekilde yazmak, demo videoyu hazirlamak ve tum t
 
 #### Bolum 1: Problem Tanimi (1 sayfa)
 **Sorumlu:** Mert
-- [ ] Bitcoin fiyat tahmini ve trading stratejisi optimizasyonu probleminin tanimi
-- [ ] Neden bu problem onemli?
-- [ ] GA'nin bu probleme uygunlugu
-- [ ] Projenin amaci ve kapsami
+- [x] Bitcoin fiyat tahmini ve trading stratejisi optimizasyonu probleminin tanimi
+- [x] Neden bu problem onemli?
+- [x] GA'nin bu probleme uygunlugu
+- [x] Projenin amaci ve kapsami
+
+**Mert notu:** Bu bolum icin hazir metin `docs/mert_rapor_notlari.md` dosyasina eklendi.
 
 #### Bolum 2: Arastirma - On Calisma (1 sayfa)
 **Sorumlu:** Gorkem Ege
@@ -51,14 +53,14 @@ Proje raporunu template'e uygun sekilde yazmak, demo videoyu hazirlamak ve tum t
 - [ ] Kutuphaneler ve versiyonlar:
   - DEAP (GA implementasyonu)
   - pandas, numpy (veri isleme)
-  - pandas-ta (teknik indikatörler)
+  - pandas/numpy (teknik indikatörler ve vektorel hesaplama)
   - yfinance (veri toplama)
   - matplotlib, plotly (gorsellesitirme)
   - scikit-learn (yardimci fonksiyonlar)
 
 #### Bolum 4: Onerilen Yontem (1.5 sayfa)
 **Sorumlu:** Mert & Mert Kerem
-- [ ] GA yapisinin aciklamasi:
+- [x] GA yapisinin aciklamasi:
   - Kromozom temsili ve gen yapisi
   - Fitness fonksiyonu
   - Secim, caprazlama, mutasyon operatörleri
@@ -112,9 +114,11 @@ Onerilen Yontem Diyagrami:
 
 #### Ek 1: Performans Iyilestirme
 **Sorumlu:** Mert
-- [ ] Hangi iyilestirme yontemleri denendi
-- [ ] Her yontemin ne kadar iyilestirme sagladi
-- [ ] Tablo ile karsilastirma
+- [x] Hangi iyilestirme yontemleri denendi
+- [x] Her yontemin ne kadar iyilestirme sagladi
+- [x] Tablo ile karsilastirma
+
+**Mert notu:** Performans iyilestirme tablosu ve GA entegrasyon ozeti `docs/mert_rapor_notlari.md` dosyasina eklendi.
 
 #### Ek 2: Literatur Katkisi
 **Sorumlu:** Mert Kerem
@@ -203,7 +207,7 @@ Onerilen Yontem Diyagrami:
 
 - [ ] Kodlarin temizlenmesi ve duzenli hale getirilmesi
 - [ ] Gereksiz yorum ve debug kodlarinin kaldirilmasi
-- [ ] `README.md` guncellenmesi:
+- [x] `README.md` guncellenmesi:
   - Proje aciklamasi
   - Kurulum talimatlari
   - Kullanim kilavuzu

@@ -2,7 +2,7 @@
 
 **Sure:** Gun 1 - Sabah (31 Mayis Cumartesi)
 **Tarih:** 31 Mayis 2026
-**Durum:** Beklemede
+**Durum:** Kismen Tamamlandi (Mert kapsami tamamlandi)
 **Sorumlu:** Tum Takim
 
 ---
@@ -19,19 +19,21 @@ Proje konusunu derinlemesine arastirmak, literatur taramasi yapmak, kullanilacak
 **Sorumlu:** Gorkem Ege & Mert
 **Sure:** 2 saat (09:00-11:00)
 
-- [ ] Genetik Algoritmalar (GA) hakkinda temel kaynaklarin incelenmesi
+- [x] Genetik Algoritmalar (GA) hakkinda temel kaynaklarin incelenmesi
   - Holland'in "Adaptation in Natural and Artificial Systems" kitabi
   - Goldberg'in GA uzerine klasik calismalari
   - GA'nin temel kavramlari: populasyon, kromozom, gen, fitness, secim, caprazlama, mutasyon
-- [ ] GA ile finansal tahmin/trading uzerine akademik makalelerin taranmasi
+- [x] GA ile finansal tahmin/trading uzerine akademik makalelerin taranmasi
   - Google Scholar'da "genetic algorithm trading strategy optimization" aramalari
   - "Genetic algorithm Bitcoin prediction" konulu makaleler
   - Hocanin BTC fiyat tahmini makalesi (varsa referans alinmasi)
-- [ ] Benzer projelerin ve acik kaynak kodlarin incelenmesi
+- [x] Benzer projelerin ve acik kaynak kodlarin incelenmesi
   - GitHub'da "genetic algorithm trading" repolari
   - Kaggle'da ilgili notebook'lar
-- [ ] En az 10 kaynak belirlenmesi ve ozetlerinin cikarilmasi
-- [ ] Incelenen kaynaklarin linkleri ve ogrenilen bilgilerin dokumante edilmesi
+- [x] En az 10 kaynak belirlenmesi ve ozetlerinin cikarilmasi
+- [x] Incelenen kaynaklarin linkleri ve ogrenilen bilgilerin dokumante edilmesi
+
+**Tamamlanma notu (Mert & Gorkem Ege):** Literatur taramasi `docs/Literature_Review.docx` dosyasinda 11 kaynak ve ozetleriyle dokumante edildi.
 
 ### 1.2 Teknik Altyapi Arastirmasi
 **Sorumlu:** Yigit & Mert Kerem
@@ -60,7 +62,6 @@ Proje konusunu derinlemesine arastirmak, literatur taramasi yapmak, kullanilacak
   numpy>=1.24.0
   pandas>=2.0.0
   deap>=1.4.0
-  pandas-ta>=0.3.14
   yfinance>=0.2.0
   matplotlib>=3.7.0
   plotly>=5.15.0
@@ -126,20 +127,22 @@ Proje konusunu derinlemesine arastirmak, literatur taramasi yapmak, kullanilacak
 **Sorumlu:** Mert
 **Sure:** 1 saat (11:00-12:00, Proje yapisi ile paralel)
 
-- [ ] Kromozom temsil yapisinin on tasarimi:
+- [x] Kromozom temsil yapisinin on tasarimi:
   - Hangi parametreler optimize edilecek?
   - Her genin veri tipi ve aralik degerleri
   - Kromozom uzunlugu
-- [ ] Fitness fonksiyonu icin metrik seceneklerinin belirlenmesi:
+- [x] Fitness fonksiyonu icin metrik seceneklerinin belirlenmesi:
   - Toplam kar/zarar
   - Sharpe Orani
   - Maximum Drawdown
   - Win Rate
   - Kar Faktoru (Profit Factor)
-- [ ] GA operatörlerinin on secimi:
+- [x] GA operatörlerinin on secimi:
   - Secim: Turnuva, Rulet Tekerlegi, Elitizm
   - Caprazlama: Tek/Cift nokta, Uniform
   - Mutasyon: Gaussian, Uniform, Bit-flip
+
+**Tamamlanma notu (Mert):** 16 genlik kromozom, Sharpe/return/drawdown odakli fitness ve turnuva-elitizm-BLX/Gaussian/Uniform operator kararlari `src/ga/` altinda koda baglandi.
 
 ---
 
