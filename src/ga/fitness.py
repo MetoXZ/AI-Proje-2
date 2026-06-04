@@ -12,8 +12,11 @@ from src.ga.chromosome import (
     repair_individual,
     validate_individual,
 )
-from src.strategy.backtest import run_backtest_fast
-from src.strategy.signals import generate_signals_fast
+def _get_strategy_imports():
+    """Lazy import -- circular import onlemi."""
+    from src.strategy.backtest import run_backtest_fast
+    from src.strategy.signals import generate_signals_fast
+    return generate_signals_fast, run_backtest_fast
 
 
 DEFAULT_INITIAL_CAPITAL = 10_000.0
@@ -82,6 +85,7 @@ def evaluate_individual(
         if repair:
             repair_individual(candidate)
         params = decode_chromosome(candidate, repair=False)
+        generate_signals_fast, run_backtest_fast = _get_strategy_imports()
         close = _extract_close(data)
         signals = generate_signals_fast(close, params)
         metrics = run_backtest_fast(

@@ -6,6 +6,9 @@ import yfinance as yf
 def collect_btc_data(start_date: str, end_date: str, interval: str = "1d") -> pd.DataFrame:
     """BTC/USD tarihsel fiyat verilerini toplar."""
     btc = yf.download("BTC-USD", start=start_date, end=end_date, interval=interval)
+    # yfinance yeni versiyonlarda MultiIndex column dondurebilir
+    if isinstance(btc.columns, pd.MultiIndex):
+        btc.columns = btc.columns.get_level_values(0)
     return btc
 
 
