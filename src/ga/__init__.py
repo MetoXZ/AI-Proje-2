@@ -12,9 +12,11 @@ from src.ga.chromosome import (
     repair_individual,
     validate_individual,
 )
+from src.ga.engine import GAResult, run_ga
 from src.ga.fitness import evaluate_individual, fitness_multi, fitness_single
 
 __all__ = [
+    "GAResult",
     "GENE_BOUNDS",
     "GENE_COUNT",
     "GENE_NAMES",
@@ -27,5 +29,6 @@ __all__ = [
     "fitness_single",
     "is_valid_individual",
     "repair_individual",
+    "run_ga",
     "validate_individual",
 ]
