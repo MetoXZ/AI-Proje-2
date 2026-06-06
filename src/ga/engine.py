@@ -188,7 +188,7 @@ def run_ga(
                 f"Nesil {gen:3d}/{num_generations} | "
                 f"Avg: {stats.avg_fitness:8.3f} | "
                 f"Max: {stats.max_fitness:8.3f} | "
-                f"Return: {stats.best_return:+7.1%} | "
+                f"Return: {stats.best_return:+7.1f}% | "
                 f"Sharpe: {stats.best_sharpe:6.3f} | "
                 f"Trades: {stats.best_trades:3d} | "
                 f"{stats.elapsed:.1f}s"
@@ -268,9 +268,9 @@ def run_ga(
         print("-" * 80)
         print(f"GA Tamamlandi | Sure: {total_time:.1f}s")
         print(f"En Iyi Fitness: {best_metrics_final['fitness_score']:.4f}")
-        print(f"En Iyi Return:  {best_metrics_final.get('total_return', 0):.2%}")
+        print(f"En Iyi Return:  {best_metrics_final.get('total_return', 0):.2f}%")
         print(f"En Iyi Sharpe:  {best_metrics_final.get('sharpe_ratio', 0):.4f}")
-        print(f"Max Drawdown:   {best_metrics_final.get('max_drawdown', 0):.2%}")
+        print(f"Max Drawdown:   {best_metrics_final.get('max_drawdown', 0):.2f}%")
         print(f"Trade Sayisi:   {best_metrics_final.get('total_trades', 0)}")
         print(f"\nOptimal Parametreler:")
         for name, value in best_params.__dict__.items():

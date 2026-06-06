@@ -1,57 +1,32 @@
 """
-Vektorel backtest modulu -- GA tabanli BTC trading botu icin.
+Stateful backtest module for the GA-based BTC trading project.
 
-GA'nin fitness fonksiyonunda her nesilde binlerce kez cagrilmasi icin
-optimize edilmistir:
-  - Tamamen vektorel islemler (for dongusu / df.apply() YOK)
-  - Look-ahead bias (veri sizintisi) YOK -- pozisyon shift(1) ile kaydiriliyor
-  - Komisyon + slippage yalnizca islem anlarinda uygulaniyor
-
-Akis:
-  Sinyal --> Pozisyon (long-only, ffill) --> shift(1) --> Getiri --> Maliyet
-  --> Equity Curve --> Metrikler (Total Return, Sharpe, MaxDD, Win Rate)
+The engine is long-only and keeps the existing anti look-ahead rule:
+signals from day t-1 are applied on day t. When High/Low data is available,
+open positions can be closed by stop-loss or take-profit before a signal exit.
+If both risk levels are touched on the same candle, stop-loss is applied first.
 """
-import pandas as pd
+from __future__ import annotations
+
 import numpy as np
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# YARDIMCI: NUMPY FFILL (pandas-free, vektorel)
-# ═══════════════════════════════════════════════════════════════════════════════
+import pandas as pd
 
 
 def _ffill_numpy(arr: np.ndarray, fill_value: float = 0.0) -> np.ndarray:
-    """
-    NaN degerlerini bir onceki gecerli degerle doldurur (forward-fill).
-    Pandas kullanmadan tamamen numpy ile O(n) karmasiklik.
-
-    Args:
-        arr: NaN icermesi muhtemel 1-D numpy dizisi.
-        fill_value: Dizinin basindaki NaN'lar icin dolgu degeri.
-
-    Returns:
-        NaN'lar giderilmis dizi.
-    """
+    """Forward-fill NaN values in a one-dimensional numpy array."""
     mask = np.isnan(arr)
     if not mask.any():
         return arr.copy()
 
-    # NaN olmayan indeksleri isle, NaN olan yerlerde onceki gecerli indeksi tasi
     idx = np.where(~mask, np.arange(len(arr)), 0)
     np.maximum.accumulate(idx, out=idx)
     result = arr[idx]
 
-    # Baslangictaki NaN'lari fill_value ile doldur (ilk gecerli degerden once)
     first_valid = np.argmax(~mask)
     if first_valid > 0:
         result[:first_valid] = fill_value
 
     return result
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ANA BACKTEST FONKSIYONU (DataFrame arayuzu)
-# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def run_backtest(
@@ -61,274 +36,268 @@ def run_backtest(
     position_size: float = 0.95,
     commission_rate: float = 0.001,
     slippage_rate: float = 0.0005,
+    stop_loss: float | None = None,
+    take_profit: float | None = None,
 ) -> dict:
     """
-    Long-only vektorel backtest -- sinyal sutunundan performans metrikleri uretir.
+    Run a long-only backtest from a DataFrame.
 
-    Islem mantigi:
-        1 (AL)  -->  pozisyona gir  (position = 1)
-       -1 (SAT) -->  pozisyondan cik (position = 0)
-        0 (NOTR) --> onceki pozisyonu koru (ffill)
-
-    Kritik: Pozisyon shift(1) ile bir gun sonraya kaydirilir.
-    Bu, sinyal gununde islem verilemeyecegini modelleyerek look-ahead bias'i onler.
-
-    Args:
-        df: En az 'Close' ve sinyal sutununu iceren DataFrame.
-        signal_col: Sinyal sutununun adi (default: 'Composite_Signal').
-        initial_capital: Baslangic sermayesi ($). Default: 10,000.
-        position_size: Sermayenin kac katiyia pozisyon acilacagi. Default: 0.95.
-        commission_rate: Islem basi komisyon orani. Default: 0.001 (%0.1).
-        slippage_rate: Islem basi kayma orani. Default: 0.0005 (%0.05).
-
-    Returns:
-        Asagidaki anahtarlari iceren dictionary:
-            total_return   (float): Toplam getiri yuzdesi (%).
-            sharpe_ratio   (float): Yilliklandirilmis Sharpe orani (365 gun, rf=0).
-            max_drawdown   (float): Zirveden en buyuk dusus yuzdesi (negatif %).
-            win_rate       (float): Karli islemlerin orani (%).
-            total_trades   (int)  : Tamamlanan islem sayisi.
-            equity_curve   (pd.Series): Gunluk sermaye degeri.
-            buy_and_hold   (pd.Series): Karsilastirma icin buy-and-hold equity.
-
-    Raises:
-        ValueError: Gerekli sutunlar eksikse.
+    High/Low columns are used for intraday stop-loss and take-profit checks
+    when available. If they are missing, Close is used as a backward-compatible
+    fallback.
     """
-    # ── Girdi dogrulama ──────────────────────────────────────────
     if "Close" not in df.columns:
         raise ValueError("DataFrame'de 'Close' sutunu bulunamadi.")
     if signal_col not in df.columns:
         raise ValueError(f"DataFrame'de '{signal_col}' sinyal sutunu bulunamadi.")
 
-    close = df["Close"].values.astype(np.float64)
-    signals = df[signal_col].values.astype(np.float64)
+    close = _as_1d_array(df["Close"], "Close")
+    high = _as_1d_array(df["High"], "High") if "High" in df.columns else close
+    low = _as_1d_array(df["Low"], "Low") if "Low" in df.columns else close
+    signals = _as_1d_array(df[signal_col], signal_col)
 
-    # ── Hesapla ──────────────────────────────────────────────────
     result = _backtest_core(
         close=close,
         signals=signals,
+        high=high,
+        low=low,
         initial_capital=initial_capital,
         position_size=position_size,
         commission_rate=commission_rate,
         slippage_rate=slippage_rate,
+        stop_loss=stop_loss,
+        take_profit=take_profit,
     )
 
-    # Equity curve'u pandas Series olarak sar (gorsellesitirme icin)
     result["equity_curve"] = pd.Series(
         result["equity_curve"], index=df.index, name="Equity"
     )
     result["buy_and_hold"] = pd.Series(
         result["buy_and_hold"], index=df.index, name="Buy_and_Hold"
     )
-
     return result
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# HIZLI BACKTEST FONKSIYONU (numpy arayuzu -- GA fitness icin)
-# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def run_backtest_fast(
     close: np.ndarray,
     signals: np.ndarray,
+    high: np.ndarray | None = None,
+    low: np.ndarray | None = None,
     initial_capital: float = 10_000.0,
     position_size: float = 0.95,
     commission_rate: float = 0.001,
     slippage_rate: float = 0.0005,
+    stop_loss: float | None = None,
+    take_profit: float | None = None,
 ) -> dict:
     """
-    Yuksek performansli backtest -- sadece numpy, DataFrame overhead'i yok.
+    Run the same backtest from numpy arrays.
 
-    GA fitness fonksiyonunun her cagrisinda kullanilmak uzere tasarlandi.
-    run_backtest() ile ayni mantigi kullanir. equity_curve ve buy_and_hold
-    numpy dizisi olarak dondurulur.
-
-    Args:
-        close: Kapanis fiyatlarinin numpy dizisi (1-D float64).
-        signals: Sinyal dizisi (+1, -1, 0) (1-D).
-        initial_capital: Baslangic sermayesi ($).
-        position_size: Pozisyon buyuklugu orani.
-        commission_rate: Komisyon orani.
-        slippage_rate: Kayma orani.
-
-    Returns:
-        run_backtest() ile ayni anahtarlari iceren dictionary.
-        equity_curve ve buy_and_hold np.ndarray olarak dondurulur.
+    Passing only close/signals remains supported. In that mode, Close is used
+    as the High/Low fallback, so stop-loss/take-profit can still work on a
+    close-only approximation.
     """
+    close_arr = _as_1d_array(close, "close")
     return _backtest_core(
-        close=np.asarray(close, dtype=np.float64),
-        signals=np.asarray(signals, dtype=np.float64),
+        close=close_arr,
+        signals=_as_1d_array(signals, "signals"),
+        high=_as_1d_array(high, "high") if high is not None else close_arr,
+        low=_as_1d_array(low, "low") if low is not None else close_arr,
         initial_capital=initial_capital,
         position_size=position_size,
         commission_rate=commission_rate,
         slippage_rate=slippage_rate,
+        stop_loss=stop_loss,
+        take_profit=take_profit,
     )
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# CEKIRDEK HESAPLAMA MOTORU (tamamen numpy, her iki arayuz tarafindan paylasilir)
-# ═══════════════════════════════════════════════════════════════════════════════
+def _as_1d_array(values, name: str) -> np.ndarray:
+    """Convert Series/DataFrame/array-like input to a finite 1-D float array."""
+    if isinstance(values, pd.DataFrame):
+        values = values.iloc[:, 0]
+    arr = np.asarray(values, dtype=np.float64)
+    if arr.ndim != 1:
+        raise ValueError(f"{name} 1 boyutlu olmali.")
+    if len(arr) == 0:
+        raise ValueError(f"{name} bos olamaz.")
+    if not np.all(np.isfinite(arr)):
+        raise ValueError(f"{name} NaN veya sonsuz deger iceremez.")
+    return arr
 
 
-def _backtest_core(
+def _validate_core_inputs(
     close: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
     signals: np.ndarray,
     initial_capital: float,
     position_size: float,
     commission_rate: float,
     slippage_rate: float,
+    stop_loss: float | None,
+    take_profit: float | None,
+) -> None:
+    n = len(close)
+    if len(high) != n or len(low) != n or len(signals) != n:
+        raise ValueError("close, high, low ve signals uzunluklari ayni olmali.")
+    if initial_capital <= 0:
+        raise ValueError("initial_capital pozitif olmali.")
+    if not (0.0 <= position_size <= 1.0):
+        raise ValueError("position_size 0 ile 1 arasinda olmali.")
+    if commission_rate < 0 or slippage_rate < 0:
+        raise ValueError("Komisyon ve slippage negatif olamaz.")
+    if stop_loss is not None and stop_loss <= 0:
+        raise ValueError("stop_loss pozitif olmali.")
+    if take_profit is not None and take_profit <= 0:
+        raise ValueError("take_profit pozitif olmali.")
+
+
+def _backtest_core(
+    close: np.ndarray,
+    signals: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
+    initial_capital: float,
+    position_size: float,
+    commission_rate: float,
+    slippage_rate: float,
+    stop_loss: float | None,
+    take_profit: float | None,
 ) -> dict:
     """
-    Tum backtest hesaplamasini vektorel olarak gerceklestirir.
+    Stateful long-only backtest.
 
-    FOR DONGUSU VE DF.APPLY() KULLANILMAZ.
+    A signal on index t-1 is applied to the return path of index t. Entry and
+    signal-exit prices use the previous close. Stop-loss and take-profit exits
+    use their threshold prices and are checked with the current candle's Low
+    and High.
     """
+    close = _as_1d_array(close, "close")
+    high = _as_1d_array(high, "high")
+    low = _as_1d_array(low, "low")
+    signals = np.nan_to_num(_as_1d_array(signals, "signals"), nan=0.0)
+    _validate_core_inputs(
+        close,
+        high,
+        low,
+        signals,
+        initial_capital,
+        position_size,
+        commission_rate,
+        slippage_rate,
+        stop_loss,
+        take_profit,
+    )
+
     n = len(close)
+    total_cost = commission_rate + slippage_rate
+    net_return = np.zeros(n, dtype=np.float64)
+    equity = np.empty(n, dtype=np.float64)
+    equity[0] = initial_capital
 
-    # ──────────────────────────────────────────────────────────────
-    # 1. POZISYON HESAPLAMA (Long-only)
-    # ──────────────────────────────────────────────────────────────
-    #   signal =  1 --> pozisyona gir  (position = 1)
-    #   signal = -1 --> pozisyondan cik (position = 0)
-    #   signal =  0 --> onceki durumu koru (ffill)
+    in_position = False
+    entry_price = 0.0
+    trade_returns: list[float] = []
+    stop_loss_exits = 0
+    take_profit_exits = 0
+    signal_exits = 0
 
-    raw_position = np.where(
-        signals == 1, 1.0,
-        np.where(signals == -1, 0.0, np.nan)
-    )
+    for t in range(1, n):
+        prev_close = close[t - 1]
+        day_return = 0.0
+        day_cost = 0.0
+        signal = signals[t - 1]
 
-    # NaN degerleri onceki gecerli pozisyonla doldur (ffill)
-    # Baslangicta pozisyon yok (0)
-    raw_position = _ffill_numpy(raw_position, fill_value=0.0)
+        if in_position and signal == -1:
+            exit_price = prev_close
+            day_cost += total_cost * position_size
+            trade_returns.append(_trade_return(entry_price, exit_price, total_cost))
+            signal_exits += 1
+            in_position = False
+            entry_price = 0.0
 
-    # ──────────────────────────────────────────────────────────────
-    # 2. LOOK-AHEAD BIAS ONLEME -- shift(1)
-    # ──────────────────────────────────────────────────────────────
-    # Bugunun sinyali yarin uygulanir: bugun karar ver, yarin isle.
-    # position[t] = raw_position[t-1]
+        if not in_position and signal == 1:
+            entry_price = prev_close
+            day_cost += total_cost * position_size
+            in_position = True
 
-    position = np.empty(n, dtype=np.float64)
-    position[0] = 0.0             # ilk gun: pozisyon yok
-    position[1:] = raw_position[:-1]  # shift(1)
+        if in_position:
+            exit_price = None
+            if stop_loss is not None and low[t] <= entry_price * (1.0 - stop_loss):
+                exit_price = entry_price * (1.0 - stop_loss)
+                stop_loss_exits += 1
+            elif take_profit is not None and high[t] >= entry_price * (1.0 + take_profit):
+                exit_price = entry_price * (1.0 + take_profit)
+                take_profit_exits += 1
 
-    # ──────────────────────────────────────────────────────────────
-    # 3. GUNLUK GETIRI
-    # ──────────────────────────────────────────────────────────────
+            if exit_price is not None:
+                day_return = (exit_price / prev_close - 1.0) * position_size
+                day_cost += total_cost * position_size
+                trade_returns.append(_trade_return(entry_price, exit_price, total_cost))
+                in_position = False
+                entry_price = 0.0
+            else:
+                day_return = (close[t] / prev_close - 1.0) * position_size
 
-    daily_return = np.empty(n, dtype=np.float64)
-    daily_return[0] = 0.0
-    daily_return[1:] = (close[1:] - close[:-1]) / close[:-1]
+        net_return[t] = day_return - day_cost
+        equity[t] = equity[t - 1] * (1.0 + net_return[t])
 
-    # ──────────────────────────────────────────────────────────────
-    # 4. STRATEJI GETIRISI (maliyet oncesi)
-    # ──────────────────────────────────────────────────────────────
-    # Sermayenin position_size kadari pozisyonda, gerisi nakit (getiri=0)
-
-    strategy_return = position * daily_return * position_size
-
-    # ──────────────────────────────────────────────────────────────
-    # 5. ISLEM MALIYETLERI (sadece giris/cikis anlarinda)
-    # ──────────────────────────────────────────────────────────────
-    # position_change = position.diff()
-    #   +1 --> pozisyona giris (ALIS)
-    #   -1 --> pozisyondan cikis (SATIS)
-    #    0 --> degisiklik yok
-
-    position_change = np.empty(n, dtype=np.float64)
-    position_change[0] = position[0]       # ilk gun: 0'dan position[0]'a
-    position_change[1:] = position[1:] - position[:-1]
-
-    # Maliyet = |degisim| * (komisyon + kayma) * pozisyon_buyuklugu
-    trade_cost_per_bar = (
-        np.abs(position_change) * (commission_rate + slippage_rate) * position_size
-    )
-
-    # ──────────────────────────────────────────────────────────────
-    # 6. NET GETIRI VE EQUITY CURVE
-    # ──────────────────────────────────────────────────────────────
-
-    net_return = strategy_return - trade_cost_per_bar
-    equity = initial_capital * np.cumprod(1.0 + net_return)
-
-    # ──────────────────────────────────────────────────────────────
-    # 7. BUY-AND-HOLD KARSILASTIRMA
-    # ──────────────────────────────────────────────────────────────
-
-    bh_return = np.empty(n, dtype=np.float64)
-    bh_return[0] = 0.0
-    bh_return[1:] = daily_return[1:] * position_size
-    buy_and_hold = initial_capital * np.cumprod(1.0 + bh_return)
-    # ══════════════════════════════════════════════════════════════
-    # 8. PERFORMANS METRIKLERI
-    # ══════════════════════════════════════════════════════════════
-
-    # ── 8.1 Total Return (%) ─────────────────────────────────
-    final_equity = equity[-1]
+    buy_and_hold = _buy_and_hold_equity(close, initial_capital, position_size)
     total_return = (
-        (final_equity / initial_capital - 1.0) * 100.0
-        if np.isfinite(final_equity)
+        (equity[-1] / initial_capital - 1.0) * 100.0
+        if np.isfinite(equity[-1])
         else 0.0
     )
-
-    # ── 8.2 Sharpe Ratio (yilliklandirilmis, 365 gun, rf=0) ─────
-    # NaN ve sifir varyans durumlarina karsi koruma
-    finite_returns = net_return[np.isfinite(net_return)]
-    if len(finite_returns) > 1:
-        mean_ret = np.mean(finite_returns)
-        std_ret = np.std(finite_returns, ddof=1)
-        sharpe_ratio = (
-            (mean_ret / std_ret) * np.sqrt(365.0)
-            if std_ret > 1e-12
-            else 0.0
-        )
-    else:
-        sharpe_ratio = 0.0
-
-    # ── 8.3 Maximum Drawdown (%) ─────────────────────────────────
-    # NaN iceren equity degerlerini koruma
-    valid_equity = np.where(np.isfinite(equity), equity, initial_capital)
-    peak = np.maximum.accumulate(valid_equity)
-    drawdown = np.where(peak > 0, (valid_equity - peak) / peak, 0.0)
-    max_drawdown = float(np.min(drawdown)) * 100.0   # negatif %
-
-    # ── 8.4 Win Rate (%) ─────────────────────────────────────────
-    # Islem bazli kar/zarar: giris ve cikis fiyatlarini diff() ile tespit et
-    #
-    # raw_position uzerinde diff():
-    #   +1 --> giris (AL)
-    #   -1 --> cikis (SAT)
-    raw_change = np.empty(n, dtype=np.float64)
-    raw_change[0] = raw_position[0]
-    raw_change[1:] = raw_position[1:] - raw_position[:-1]
-
-    entry_mask = raw_change == 1.0    # giris noktalari
-    exit_mask = raw_change == -1.0    # cikis noktalari
-
-    entry_prices = close[entry_mask]
-    exit_prices = close[exit_mask]
-
-    # Sadece tamamlanan islemleri say (son acik pozisyon haric)
-    n_trades = min(len(entry_prices), len(exit_prices))
-
-    if n_trades > 0:
-        ep = entry_prices[:n_trades]
-        xp = exit_prices[:n_trades]
-        # Maliyet dahil net kar: cikis*(1-maliyet) - giris*(1+maliyet)
-        total_cost = commission_rate + slippage_rate
-        net_profit = xp * (1.0 - total_cost) - ep * (1.0 + total_cost)
-        win_rate = float(np.sum(net_profit > 0)) / n_trades * 100.0
-    else:
-        win_rate = 0.0
-
-    # ──────────────────────────────────────────────────────────────
+    sharpe_ratio = _sharpe_ratio(net_return)
+    max_drawdown = _max_drawdown(equity)
+    total_trades = len(trade_returns)
+    win_rate = (
+        float(np.sum(np.asarray(trade_returns) > 0.0)) / total_trades * 100.0
+        if total_trades > 0
+        else 0.0
+    )
 
     return {
         "total_return": round(float(total_return), 4),
         "sharpe_ratio": round(float(sharpe_ratio), 4),
         "max_drawdown": round(float(max_drawdown), 4),
         "win_rate": round(float(win_rate), 2),
-        "total_trades": int(n_trades),
-        "equity_curve": equity,        # np.ndarray (veya pd.Series wraplenir)
-        "buy_and_hold": buy_and_hold,  # np.ndarray (veya pd.Series wraplenir)
+        "total_trades": int(total_trades),
+        "stop_loss_exits": int(stop_loss_exits),
+        "take_profit_exits": int(take_profit_exits),
+        "signal_exits": int(signal_exits),
+        "equity_curve": equity,
+        "buy_and_hold": buy_and_hold,
     }
+
+
+def _trade_return(entry_price: float, exit_price: float, total_cost: float) -> float:
+    return (exit_price * (1.0 - total_cost)) / (entry_price * (1.0 + total_cost)) - 1.0
+
+
+def _buy_and_hold_equity(
+    close: np.ndarray,
+    initial_capital: float,
+    position_size: float,
+) -> np.ndarray:
+    daily_return = np.zeros(len(close), dtype=np.float64)
+    daily_return[1:] = (close[1:] - close[:-1]) / close[:-1] * position_size
+    return initial_capital * np.cumprod(1.0 + daily_return)
+
+
+def _sharpe_ratio(net_return: np.ndarray) -> float:
+    finite_returns = net_return[np.isfinite(net_return)]
+    if len(finite_returns) <= 1:
+        return 0.0
+    std_ret = np.std(finite_returns, ddof=1)
+    if std_ret <= 1e-12:
+        return 0.0
+    return float(np.mean(finite_returns) / std_ret * np.sqrt(365.0))
+
+
+def _max_drawdown(equity: np.ndarray) -> float:
+    valid_equity = np.where(np.isfinite(equity), equity, equity[0])
+    peak = np.maximum.accumulate(valid_equity)
+    drawdown = np.where(peak > 0, (valid_equity - peak) / peak, 0.0)
+    return float(np.min(drawdown)) * 100.0

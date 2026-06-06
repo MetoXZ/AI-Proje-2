@@ -1,4 +1,4 @@
-"""GA fitness fonksiyonlari ve vektorel backtesting entegrasyonu."""
+"""GA fitness fonksiyonlari ve OHLC backtesting entegrasyonu."""
 from __future__ import annotations
 
 from typing import Any, Sequence
@@ -12,6 +12,8 @@ from src.ga.chromosome import (
     repair_individual,
     validate_individual,
 )
+
+
 def _get_strategy_imports():
     """Lazy import -- circular import onlemi."""
     from src.strategy.backtest import run_backtest_fast
@@ -28,24 +30,31 @@ DEFAULT_PENALTY = 1_000.0
 FAILED_FITNESS = -1_000_000.0
 
 
-def _extract_close(data: pd.DataFrame | Sequence[float] | np.ndarray) -> np.ndarray:
+def _as_1d_array(values, name: str) -> np.ndarray:
+    if isinstance(values, pd.DataFrame):
+        values = values.iloc[:, 0]
+    arr = np.asarray(values, dtype=np.float64)
+    if arr.ndim != 1:
+        raise ValueError(f"Fitness icin {name} 1 boyutlu olmali.")
+    if len(arr) < 2:
+        raise ValueError(f"Fitness icin en az 2 {name} degeri gerekli.")
+    if not np.all(np.isfinite(arr)):
+        raise ValueError(f"Fitness verisi NaN veya sonsuz {name} iceremez.")
+    return arr
+
+
+def _extract_ohlc(
+    data: pd.DataFrame | Sequence[float] | np.ndarray,
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray | None]:
     if isinstance(data, pd.DataFrame):
         if "Close" not in data.columns:
             raise ValueError("Fitness icin DataFrame'de 'Close' sutunu bulunmali.")
-        close = data["Close"]
-        if isinstance(close, pd.DataFrame):
-            close = close.iloc[:, 0]
-        close_array = close.to_numpy(dtype=np.float64)
-    else:
-        close_array = np.asarray(data, dtype=np.float64)
+        close = _as_1d_array(data["Close"], "kapanis fiyati")
+        high = _as_1d_array(data["High"], "en yuksek fiyat") if "High" in data.columns else None
+        low = _as_1d_array(data["Low"], "en dusuk fiyat") if "Low" in data.columns else None
+        return close, high, low
 
-    if close_array.ndim != 1:
-        raise ValueError("Fitness icin kapanis fiyatlari 1 boyutlu olmali.")
-    if len(close_array) < 2:
-        raise ValueError("Fitness icin en az 2 kapanis fiyati gerekli.")
-    if not np.all(np.isfinite(close_array)):
-        raise ValueError("Fitness verisi NaN veya sonsuz fiyat iceremez.")
-    return close_array
+    return _as_1d_array(data, "kapanis fiyati"), None, None
 
 
 def _failed_metrics(reason: str) -> dict[str, Any]:
@@ -86,15 +95,19 @@ def evaluate_individual(
             repair_individual(candidate)
         params = decode_chromosome(candidate, repair=False)
         generate_signals_fast, run_backtest_fast = _get_strategy_imports()
-        close = _extract_close(data)
+        close, high, low = _extract_ohlc(data)
         signals = generate_signals_fast(close, params)
         metrics = run_backtest_fast(
             close=close,
             signals=signals,
+            high=high,
+            low=low,
             initial_capital=initial_capital,
             position_size=position_size,
             commission_rate=commission_rate,
             slippage_rate=slippage_rate,
+            stop_loss=params.stop_loss,
+            take_profit=params.take_profit,
         )
     except Exception as exc:  # Fitness dongusunde hatali birey tum GA'yi durdurmasin.
         return _failed_metrics(str(exc))

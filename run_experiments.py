@@ -25,7 +25,7 @@ from src.ga.fitness import evaluate_individual
 from src.indicators.technical import calculate_indicators
 from src.strategy.benchmarks import run_all_benchmarks
 from src.strategy.signals import generate_signals_fast
-from src.ga.chromosome import StrategyParams, decode_chromosome
+from src.ga.chromosome import decode_chromosome
 from src.strategy.backtest import run_backtest_fast
 
 RESULTS_DIR = "results/tables"
@@ -47,7 +47,7 @@ def _load_data():
 
 
 def _run_single_experiment(
-    train_close, test_close, strat_cfg, seed, **ga_overrides
+    train_data, test_data, strat_cfg, seed, **ga_overrides
 ):
     """Tek bir GA deneyini calistirir, train+test metriklerini dondurur."""
     ga_cfg = GAConfig()
@@ -68,10 +68,10 @@ def _run_single_experiment(
     )
     ga_kwargs.update(ga_overrides)
 
-    result = run_ga(train_close, **ga_kwargs)
+    result = run_ga(train_data, **ga_kwargs)
 
     test_metrics = evaluate_individual(
-        result.best_individual, test_close,
+        result.best_individual, test_data,
         initial_capital=strat_cfg.initial_capital,
         position_size=strat_cfg.position_size,
         commission_rate=strat_cfg.commission_rate,
@@ -98,11 +98,11 @@ def _run_single_experiment(
     }
 
 
-def _multi_seed_experiment(train_close, test_close, strat_cfg, label, **ga_overrides):
+def _multi_seed_experiment(train_data, test_data, strat_cfg, label, **ga_overrides):
     """Ayni konfigurasyonu 3 farkli seed ile calistirir, ortalama ve std dondurur."""
     all_results = []
     for seed in SEEDS:
-        r = _run_single_experiment(train_close, test_close, strat_cfg, seed, **ga_overrides)
+        r = _run_single_experiment(train_data, test_data, strat_cfg, seed, **ga_overrides)
         all_results.append(r)
 
     metrics_keys = [
@@ -125,11 +125,11 @@ def _multi_seed_experiment(train_close, test_close, strat_cfg, label, **ga_overr
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def run_baseline(train_close, test_close, strat_cfg):
+def run_baseline(train_data, test_data, strat_cfg):
     """Varsayilan parametrelerle baseline deney."""
     print("\n[5.1] Temel Deney (Baseline)...")
     row, results = _multi_seed_experiment(
-        train_close, test_close, strat_cfg, "Baseline"
+        train_data, test_data, strat_cfg, "Baseline"
     )
 
     df = pd.DataFrame([row])
@@ -153,7 +153,7 @@ def run_baseline(train_close, test_close, strat_cfg):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def run_parameter_sensitivity(train_close, test_close, strat_cfg):
+def run_parameter_sensitivity(train_data, test_data, strat_cfg):
     """Farkli GA konfigurasyonlari ile parametre duyarlilik analizi."""
     print("\n[5.2] Parametre Duyarlilik Analizi...")
     rows = []
@@ -164,7 +164,7 @@ def run_parameter_sensitivity(train_close, test_close, strat_cfg):
         label = f"Pop={pop}"
         print(f"    {label}...", end=" ", flush=True)
         row, _ = _multi_seed_experiment(
-            train_close, test_close, strat_cfg, label,
+            train_data, test_data, strat_cfg, label,
             population_size=pop,
         )
         rows.append(row)
@@ -176,7 +176,7 @@ def run_parameter_sensitivity(train_close, test_close, strat_cfg):
         label = f"Gen={gen}"
         print(f"    {label}...", end=" ", flush=True)
         row, _ = _multi_seed_experiment(
-            train_close, test_close, strat_cfg, label,
+            train_data, test_data, strat_cfg, label,
             num_generations=gen,
         )
         rows.append(row)
@@ -188,7 +188,7 @@ def run_parameter_sensitivity(train_close, test_close, strat_cfg):
         label = f"CX={cx}/MUT={mut}"
         print(f"    {label}...", end=" ", flush=True)
         row, _ = _multi_seed_experiment(
-            train_close, test_close, strat_cfg, label,
+            train_data, test_data, strat_cfg, label,
             crossover_rate=cx, mutation_rate=mut,
         )
         rows.append(row)
@@ -200,7 +200,7 @@ def run_parameter_sensitivity(train_close, test_close, strat_cfg):
         label = f"Tournament={ts}"
         print(f"    {label}...", end=" ", flush=True)
         row, _ = _multi_seed_experiment(
-            train_close, test_close, strat_cfg, label,
+            train_data, test_data, strat_cfg, label,
             tournament_size=ts,
         )
         rows.append(row)
@@ -235,8 +235,10 @@ def run_walk_forward(df_full, strat_cfg):
         train_mask = (df_full.index >= train_start) & (df_full.index <= train_end)
         test_mask = (df_full.index >= test_start) & (df_full.index <= test_end)
 
-        train_close = df_full.loc[train_mask, "Close"].to_numpy(dtype=np.float64)
-        test_close = df_full.loc[test_mask, "Close"].to_numpy(dtype=np.float64)
+        train_data = df_full.loc[train_mask]
+        test_data = df_full.loc[test_mask]
+        train_close = train_data["Close"].to_numpy(dtype=np.float64)
+        test_close = test_data["Close"].to_numpy(dtype=np.float64)
 
         if len(train_close) < 100 or len(test_close) < 10:
             print(f"  Donem {i}: Yetersiz veri, atlaniyor.")
@@ -246,7 +248,7 @@ def run_walk_forward(df_full, strat_cfg):
         print(f"  {label}...", end=" ", flush=True)
 
         r = _run_single_experiment(
-            train_close, test_close, strat_cfg, seed=42,
+            train_data, test_data, strat_cfg, seed=42,
             population_size=100, num_generations=50,
         )
 
@@ -282,7 +284,7 @@ def run_walk_forward(df_full, strat_cfg):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def run_benchmark_comparison(test_close, strat_cfg, ga_best_individual):
+def run_benchmark_comparison(test_data, test_close, strat_cfg, ga_best_individual):
     """GA optimize stratejisi vs benchmark stratejileri."""
     print("\n[5.5] Benchmark Karsilastirmasi...")
 
@@ -295,7 +297,7 @@ def run_benchmark_comparison(test_close, strat_cfg, ga_best_individual):
 
     # GA stratejisi
     ga_metrics = evaluate_individual(
-        ga_best_individual, test_close, **backtest_kwargs
+        ga_best_individual, test_data, **backtest_kwargs
     )
 
     # Benchmark stratejileri
@@ -356,7 +358,14 @@ def run_visualization(
     # Sinyalleri uret
     params = decode_chromosome(baseline_result["best_individual"])
     signals = generate_signals_fast(test_close, params)
-    bt = run_backtest_fast(test_close, signals)
+    bt = run_backtest_fast(
+        test_close,
+        signals,
+        high=test_df["High"].to_numpy(dtype=np.float64) if "High" in test_df.columns else None,
+        low=test_df["Low"].to_numpy(dtype=np.float64) if "Low" in test_df.columns else None,
+        stop_loss=params.stop_loss,
+        take_profit=params.take_profit,
+    )
 
     # 1. Fitness evrimi
     plot_fitness_evolution(baseline_result["logbook"])
@@ -434,17 +443,17 @@ def main():
     t0 = time.time()
 
     # 5.1 Baseline
-    baseline_result = run_baseline(train_close, test_close, strat_cfg)
+    baseline_result = run_baseline(train_df, test_df, strat_cfg)
 
     # 5.2 Parametre Duyarlilik
-    sensitivity_df = run_parameter_sensitivity(train_close, test_close, strat_cfg)
+    sensitivity_df = run_parameter_sensitivity(train_df, test_df, strat_cfg)
 
     # 5.4 Walk-Forward Validation
     wf_df = run_walk_forward(df_full, strat_cfg)
 
     # 5.5 Benchmark Karsilastirmasi
     benchmark_results = run_benchmark_comparison(
-        test_close, strat_cfg, baseline_result["best_individual"]
+        test_df, test_close, strat_cfg, baseline_result["best_individual"]
     )
 
     # 5.6 Gorsellesitirme

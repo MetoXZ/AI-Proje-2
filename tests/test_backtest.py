@@ -65,7 +65,8 @@ result = run_backtest(df_sig)
 
 expected_keys = [
     "total_return", "sharpe_ratio", "max_drawdown",
-    "win_rate", "total_trades", "equity_curve", "buy_and_hold"
+    "win_rate", "total_trades", "stop_loss_exits", "take_profit_exits",
+    "signal_exits", "equity_curve", "buy_and_hold"
 ]
 for key in expected_keys:
     assert key in result, f"HATA: '{key}' anahtari eksik!"
@@ -143,10 +144,13 @@ print("\nTEST 4: DataFrame vs numpy arayuz tutarliligi")
 print("-" * 40)
 
 signals_np = df_sig["Composite_Signal"].values.astype(np.float64)
-result_fast = run_backtest_fast(close, signals_np)
+result_fast = run_backtest_fast(close, signals_np, high=high, low=low)
 
 # 4 ana metrik ayni olmali
-for key in ["total_return", "sharpe_ratio", "max_drawdown", "win_rate", "total_trades"]:
+for key in [
+    "total_return", "sharpe_ratio", "max_drawdown", "win_rate",
+    "total_trades", "stop_loss_exits", "take_profit_exits", "signal_exits",
+]:
     val_full = result[key]
     val_fast = result_fast[key]
     if isinstance(val_full, float):
@@ -163,6 +167,79 @@ eq_fast = result_fast["equity_curve"]
 max_eq_diff = np.max(np.abs(eq_full - eq_fast))
 assert max_eq_diff < 1e-6, f"HATA: Equity curve farki: {max_eq_diff}"
 print(f"  [OK] Equity curve max fark: {max_eq_diff:.2e}")
+
+
+# =====================================================================
+# TEST 4B: Stop-loss / take-profit cikislari
+# =====================================================================
+
+print("\nTEST 4B: Stop-loss / take-profit cikislari")
+print("-" * 40)
+
+risk_dates = pd.date_range("2024-01-01", periods=6, freq="D")
+risk_base = pd.DataFrame({
+    "Open":  [100, 100, 100, 100, 100, 100],
+    "High":  [100, 112, 100, 100, 100, 100],
+    "Low":   [100,  99, 100, 100, 100, 100],
+    "Close": [100, 100, 100, 100, 100, 100],
+    "Volume": [1, 1, 1, 1, 1, 1],
+    "Composite_Signal": [1, 0, 0, 0, 0, 0],
+}, index=risk_dates, dtype=float)
+
+tp_result = run_backtest(
+    risk_base, commission_rate=0.0, slippage_rate=0.0,
+    stop_loss=0.05, take_profit=0.10,
+)
+assert tp_result["take_profit_exits"] == 1, "HATA: Take-profit cikisi sayilmadi!"
+assert tp_result["stop_loss_exits"] == 0, "HATA: Beklenmeyen stop-loss cikisi!"
+print("  [OK] High take-profit seviyesini gecince pozisyon kapandi.")
+
+stop_df = risk_base.copy()
+stop_df["High"] = [100, 101, 100, 100, 100, 100]
+stop_df["Low"] = [100, 94, 100, 100, 100, 100]
+stop_result = run_backtest(
+    stop_df, commission_rate=0.0, slippage_rate=0.0,
+    stop_loss=0.05, take_profit=0.10,
+)
+assert stop_result["stop_loss_exits"] == 1, "HATA: Stop-loss cikisi sayilmadi!"
+assert stop_result["take_profit_exits"] == 0, "HATA: Beklenmeyen take-profit cikisi!"
+print("  [OK] Low stop-loss seviyesinin altina inince pozisyon kapandi.")
+
+conflict_df = risk_base.copy()
+conflict_df["High"] = [100, 112, 100, 100, 100, 100]
+conflict_df["Low"] = [100, 94, 100, 100, 100, 100]
+conflict_result = run_backtest(
+    conflict_df, commission_rate=0.0, slippage_rate=0.0,
+    stop_loss=0.05, take_profit=0.10,
+)
+assert conflict_result["stop_loss_exits"] == 1, "HATA: Cakismada stop-loss once calismali!"
+assert conflict_result["take_profit_exits"] == 0, "HATA: Cakismada take-profit once calisti!"
+print("  [OK] Ayni mumda stop-loss once uygulandi.")
+
+risk_fast = run_backtest_fast(
+    risk_base["Close"].to_numpy(dtype=np.float64),
+    risk_base["Composite_Signal"].to_numpy(dtype=np.float64),
+    high=risk_base["High"].to_numpy(dtype=np.float64),
+    low=risk_base["Low"].to_numpy(dtype=np.float64),
+    commission_rate=0.0,
+    slippage_rate=0.0,
+    stop_loss=0.05,
+    take_profit=0.10,
+)
+for key in ["total_return", "total_trades", "take_profit_exits", "stop_loss_exits"]:
+    assert tp_result[key] == risk_fast[key], f"HATA: OHLC fast/full uyumsuz: {key}"
+print("  [OK] OHLC full ve fast backtest tutarli.")
+
+risk_future = df_sig.copy()
+risk_future.iloc[half:, risk_future.columns.get_loc("High")] *= 5.0
+risk_future.iloc[half:, risk_future.columns.get_loc("Low")] *= 0.2
+risk_full = run_backtest(df_sig, stop_loss=params.stop_loss, take_profit=params.take_profit)
+risk_mutated = run_backtest(risk_future, stop_loss=params.stop_loss, take_profit=params.take_profit)
+future_diff = np.max(np.abs(
+    risk_full["equity_curve"].values[:half] - risk_mutated["equity_curve"].values[:half]
+))
+assert future_diff < 1e-6, f"HATA: Gelecek OHLC ilk yariyi etkiledi: {future_diff}"
+print("  [OK] Gelecek OHLC degisimi ilk yari equity curve'u etkilemedi.")
 
 
 # =====================================================================

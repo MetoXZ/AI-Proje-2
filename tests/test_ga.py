@@ -6,6 +6,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
+import pandas as pd
 
 from src.ga.chromosome import (
     GENE_COUNT,
@@ -129,6 +130,43 @@ failed = evaluate_individual([1, 2, 3], close, repair=False)
 assert failed["is_penalized"]
 assert failed["fitness_score"] < -100_000
 print("  [OK] Hatali birey dusuk fitness ile cezalandirildi.")
+
+
+print("\nTEST 6: Stop-loss / take-profit genleri fitness'i etkiliyor")
+print("-" * 40)
+
+risk_n = 120
+risk_close = np.linspace(100.0, 140.0, risk_n)
+risk_df = pd.DataFrame({
+    "High": risk_close * 1.03,
+    "Low": risk_close * 0.995,
+    "Close": risk_close,
+})
+
+risk_base = [
+    14, 30.0, 70.0,
+    12, 26, 9,
+    20, 2.0,
+    5, 30,
+    0.01, 0.02,
+    0.0, 0.0, 0.0, 1.0,
+]
+risk_loose = risk_base[:]
+risk_loose[10] = 0.10
+risk_loose[11] = 0.20
+
+tight_metrics = evaluate_individual(risk_base, risk_df, min_trades=0)
+loose_metrics = evaluate_individual(risk_loose, risk_df, min_trades=0)
+
+assert tight_metrics["take_profit_exits"] > loose_metrics["take_profit_exits"], \
+    "HATA: Take-profit geni cikis sayisini etkilemedi!"
+assert tight_metrics["fitness_score"] != loose_metrics["fitness_score"], \
+    "HATA: Stop-loss/take-profit genleri fitness sonucunu etkilemedi!"
+print(
+    "  [OK] Risk genleri fitness'i degistirdi: "
+    f"tight TP={tight_metrics['take_profit_exits']}, "
+    f"loose TP={loose_metrics['take_profit_exits']}"
+)
 
 
 print("\n" + "=" * 60)

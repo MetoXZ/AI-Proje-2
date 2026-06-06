@@ -24,8 +24,6 @@ from src.data.preprocessor import clean_data, get_data_report, split_train_test
 from src.indicators.technical import calculate_indicators
 from src.ga.engine import run_ga
 from src.ga.fitness import evaluate_individual
-from src.strategy.signals import generate_signals
-from src.strategy.backtest import run_backtest
 
 
 def main() -> None:
@@ -69,8 +67,7 @@ def main() -> None:
     print(f"\n[3/5] Train/Test ayirimi...")
     train_df, test_df = split_train_test(df, data_cfg.train_end_date, data_cfg.test_start_date)
 
-    # Close verisini numpy olarak hazirla (GA icin)
-    train_close = train_df["Close"].to_numpy(dtype=np.float64)
+    # Close verisini yardimci hesaplar icin hazirla; GA OHLC DataFrame kullanir.
     test_close = test_df["Close"].to_numpy(dtype=np.float64)
 
     print(f"  Train: {len(train_df)} gun ({train_df.index[0].date()} ~ {train_df.index[-1].date()})")
@@ -82,7 +79,7 @@ def main() -> None:
     print()
 
     result = run_ga(
-        train_close,
+        train_df,
         population_size=ga_cfg.population_size,
         num_generations=ga_cfg.num_generations,
         crossover_rate=ga_cfg.crossover_rate,
@@ -103,7 +100,7 @@ def main() -> None:
 
     test_metrics = evaluate_individual(
         result.best_individual,
-        test_close,
+        test_df,
         initial_capital=strat_cfg.initial_capital,
         position_size=strat_cfg.position_size,
         commission_rate=strat_cfg.commission_rate,
@@ -118,9 +115,9 @@ def main() -> None:
     print(f"{'=' * 80}")
     print(f"\n  {'':30s} {'TRAIN':>12s} {'TEST':>12s}")
     print(f"  {'-'*54}")
-    print(f"  {'Total Return':30s} {result.best_metrics.get('total_return', 0):>11.2%} {test_metrics.get('total_return', 0):>11.2%}")
+    print(f"  {'Total Return':30s} {result.best_metrics.get('total_return', 0):>10.2f}% {test_metrics.get('total_return', 0):>10.2f}%")
     print(f"  {'Sharpe Ratio':30s} {result.best_metrics.get('sharpe_ratio', 0):>12.4f} {test_metrics.get('sharpe_ratio', 0):>12.4f}")
-    print(f"  {'Max Drawdown':30s} {result.best_metrics.get('max_drawdown', 0):>11.2%} {test_metrics.get('max_drawdown', 0):>11.2%}")
+    print(f"  {'Max Drawdown':30s} {result.best_metrics.get('max_drawdown', 0):>10.2f}% {test_metrics.get('max_drawdown', 0):>10.2f}%")
     print(f"  {'Win Rate':30s} {result.best_metrics.get('win_rate', 0):>11.1f}% {test_metrics.get('win_rate', 0):>11.1f}%")
     print(f"  {'Trade Sayisi':30s} {result.best_metrics.get('total_trades', 0):>12d} {test_metrics.get('total_trades', 0):>12d}")
     print(f"  {'Buy & Hold Return (Test)':30s} {'':>12s} {bh_return:>11.2%}")
