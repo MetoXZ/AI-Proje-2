@@ -84,7 +84,7 @@ score = fitness_single(individual, close_prices)
 ## Teknolojiler
 
 - **Python 3.10+**
-- **DEAP** - Genetik Algoritma
+- **Ozel GA motoru** - Genetik Algoritma
 - **pandas / numpy** - Teknik indikatorler ve vektorel hesaplama
 - **yfinance** - BTC veri toplama
-- **matplotlib / plotly** - Gorsellesitirme
+- **matplotlib** - Gorsellesitirme

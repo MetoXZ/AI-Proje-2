@@ -5,7 +5,7 @@ Genetik Algoritma (GA) sürecinde fitness (uyumluluk) değerlendirmesinin her ne
 
 Bu nedenle;
 * **Yüksek Hız:** Hızlı matris işlemleri sunan numpy ve pandas mimarisi tercih edilmiştir.
-* **Esneklik:** Genetik Algoritma kütüphanesi (**DEAP**) ile tam entegrasyon ve esneklik avantajı sağlanmıştır.
+* **Esneklik:** Projeye özel geliştirilen Genetik Algoritma motoru ile doğrudan uyum ve esneklik avantajı sağlanmıştır.
 
 ---
 
