@@ -2,7 +2,7 @@
 
 **Sure:** Gun 1 - Sabah (31 Mayis Cumartesi)
 **Tarih:** 31 Mayis 2026
-**Durum:** Kismen Tamamlandi (Mert kapsami tamamlandi)
+**Durum:** Tamamlandi
 **Sorumlu:** Tum Takim
 
 ---
@@ -39,46 +39,42 @@ Proje konusunu derinlemesine arastirmak, literatur taramasi yapmak, kullanilacak
 **Sorumlu:** Yigit & Mert Kerem
 **Sure:** 1 saat (09:00-10:00, Literatur ile paralel)
 
-- [ ] Python kutuphanelerinin arastirilmasi ve karsilastirilmasi:
-  - **DEAP** (Distributed Evolutionary Algorithms in Python) - GA implementasyonu icin
-  - **pandas-ta** vs **TA-Lib** - Teknik indikatörler icin
-  - **backtrader** vs ozel backtesting - Strateji test icin
-  - **yfinance** vs **ccxt** - Veri toplama icin
-- [ ] BTC tarihsel veri kaynaklarinin belirlenmesi:
+- [x] Python kutuphanelerinin arastirilmasi ve karsilastirilmasi:
+  - **Özel GA Motoru** (numpy/pandas tabanli) - DEAP incelendi ancak takim tamamen özel (custom) bir GA motoru gelistirmeye karar verdi
+  - **Özel implementasyon (pure pandas/numpy)** - Teknik indikatörler icin
+  - **Özel vektörel backtesting** - Strateji test icin
+  - **yfinance** - Veri toplama icin
+- [x] BTC tarihsel veri kaynaklarinin belirlenmesi:
   - Yahoo Finance (yfinance)
   - Binance API
   - CoinGecko API
   - Kaggle BTC veri setleri
-- [ ] Veri granularitesinin belirlenmesi (gunluk / saatlik / 4 saatlik)
-- [ ] Veri zaman araliginin belirlenmesi (orn: 2018-2025)
+- [x] Veri granularitesinin belirlenmesi (gunluk / saatlik / 4 saatlik)
+- [x] Veri zaman araliginin belirlenmesi (orn: 2018-2025)
 
 ### 1.3 Gelistirme Ortaminin Kurulumu
 **Sorumlu:** Yigit
 **Sure:** 1 saat (10:00-11:00)
 
-- [ ] Python 3.10+ kurulumu ve sanal ortam (venv) olusturma
-- [ ] `requirements.txt` dosyasinin hazirlanmasi:
+- [x] Python 3.10+ kurulumu ve sanal ortam (venv) olusturma
+- [x] `requirements.txt` dosyasinin hazirlanmasi:
   ```
-  numpy>=1.24.0
-  pandas>=2.0.0
-  deap>=1.4.0
-  yfinance>=0.2.0
-  matplotlib>=3.7.0
-  plotly>=5.15.0
-  seaborn>=0.12.0
-  scikit-learn>=1.3.0
+  numpy
+  pandas
+  yfinance
+  matplotlib
   ```
-- [ ] GitHub reposunun olusturulmasi
+- [x] GitHub reposunun olusturulmasi
   - `.gitignore` dosyasi (Python template)
   - `README.md` dosyasi
   - Proje klasor yapisi
-- [ ] Jupyter Notebook ortaminin hazirlanmasi (kesfetme/prototip icin)
+- [x] Jupyter Notebook ortaminin hazirlanmasi (kesfetme/prototip icin)
 
 ### 1.4 Proje Yapisinin Belirlenmesi
 **Sorumlu:** Mert & Mert Kerem
 **Sure:** 1 saat (11:00-12:00)
 
-- [ ] Proje dizin yapisinin tasarlanmasi:
+- [x] Proje dizin yapisinin tasarlanmasi:
   ```
   btc-ga-trading/
   ├── README.md
@@ -120,8 +116,8 @@ Proje konusunu derinlemesine arastirmak, literatur taramasi yapmak, kullanilacak
   └── tests/
       └── test_ga.py           # Birim testleri
   ```
-- [ ] Modüller arasi arayuzlerin (interface) tanimlanmasi
-- [ ] Konfigurasyon dosyasinin sablonunun hazirlanmasi
+- [x] Modüller arasi arayuzlerin (interface) tanimlanmasi
+- [x] Konfigurasyon dosyasinin sablonunun hazirlanmasi
 
 ### 1.5 GA Tasarim Kararlari
 **Sorumlu:** Mert

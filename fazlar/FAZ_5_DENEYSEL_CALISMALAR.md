@@ -2,7 +2,7 @@
 
 **Sure:** Gun 3 - Tam Gun (2 Haziran Pazartesi)
 **Tarih:** 2 Haziran 2026
-**Durum:** Beklemede
+**Durum:** Tamamlandi
 **Sorumlu:** Gorkem Ege (Ana), Tum Takim (Destek)
 **Bagimlilik:** Faz 3 ve Faz 4 tamamlanmis olmali (onceki gun)
 
@@ -178,7 +178,6 @@ Donem 5: Train [2018-2024] --> Test [2025]
 ```python
 # Ornek gorsellesitirme kodu
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 
 def plot_fitness_evolution(logbook):
     """Nesil bazli fitness evrimi grafigi."""

@@ -2,7 +2,7 @@
 
 **Sure:** Gun 1 - Ogleden Sonra (31 Mayis Cumartesi)
 **Tarih:** 31 Mayis 2026
-**Durum:** Beklemede
+**Durum:** Tamamlandi
 **Sorumlu:** Yigit (Ana), Mert Kerem (Destek)
 **Bagimlilik:** Faz 1 (ayni gunun sabahi)
 
@@ -81,7 +81,6 @@ btc_data.to_csv('data/raw/btc_daily.csv')
 |-----------|----------|-------------------|
 | RSI | Goreceli Guc Endeksi | 14 |
 | Stochastic | Stokastik Osilatör | 14, 3 |
-| Williams %R | Williams Yuzde Araligi | 14 |
 
 #### Volatilite Indikatörleri
 | Indikatör | Aciklama | Varsayilan Periyot |
@@ -93,34 +92,44 @@ btc_data.to_csv('data/raw/btc_daily.csv')
 | Indikatör | Aciklama | Varsayilan Periyot |
 |-----------|----------|-------------------|
 | OBV | Dengeli Hacim | - |
-| VWAP | Hacim Agirlikli Ort. Fiyat | - |
 
 ```python
-# Ornek indikatör hesaplama taslagi
-import pandas_ta as ta
+# Özel implementasyon (pure pandas/numpy) - harici kütüphane kullanilmadi
+import numpy as np
+import pandas as pd
 
 def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
-    """Tum teknik indikatörleri hesaplar ve DataFrame'e ekler."""
+    """Tum teknik indikatörleri hesaplar ve DataFrame'e ekler.
+    Harici teknik analiz kütüphanesi kullanilmadan, pandas/numpy ile özel implementasyon."""
     # Trend
-    df['SMA_20'] = ta.sma(df['Close'], length=20)
-    df['SMA_50'] = ta.sma(df['Close'], length=50)
-    df['EMA_12'] = ta.ema(df['Close'], length=12)
-    df['EMA_26'] = ta.ema(df['Close'], length=26)
-    macd = ta.macd(df['Close'], fast=12, slow=26, signal=9)
-    df = pd.concat([df, macd], axis=1)
+    df['SMA_20'] = df['Close'].rolling(window=20).mean()
+    df['SMA_50'] = df['Close'].rolling(window=50).mean()
+    df['EMA_12'] = df['Close'].ewm(span=12, adjust=False).mean()
+    df['EMA_26'] = df['Close'].ewm(span=26, adjust=False).mean()
+    df['MACD'] = df['EMA_12'] - df['EMA_26']
+    df['MACD_Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
+    df['MACD_Hist'] = df['MACD'] - df['MACD_Signal']
 
     # Momentum
-    df['RSI_14'] = ta.rsi(df['Close'], length=14)
-    stoch = ta.stoch(df['High'], df['Low'], df['Close'])
-    df = pd.concat([df, stoch], axis=1)
+    delta = df['Close'].diff()
+    gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rs = gain / loss
+    df['RSI_14'] = 100 - (100 / (1 + rs))
 
     # Volatilite
-    bbands = ta.bbands(df['Close'], length=20, std=2)
-    df = pd.concat([df, bbands], axis=1)
-    df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    df['BB_Mid'] = df['Close'].rolling(window=20).mean()
+    bb_std = df['Close'].rolling(window=20).std()
+    df['BB_Upper'] = df['BB_Mid'] + 2 * bb_std
+    df['BB_Lower'] = df['BB_Mid'] - 2 * bb_std
+    high_low = df['High'] - df['Low']
+    high_close = (df['High'] - df['Close'].shift()).abs()
+    low_close = (df['Low'] - df['Close'].shift()).abs()
+    tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+    df['ATR_14'] = tr.rolling(window=14).mean()
 
     # Hacim
-    df['OBV'] = ta.obv(df['Close'], df['Volume'])
+    df['OBV'] = (np.sign(df['Close'].diff()) * df['Volume']).fillna(0).cumsum()
 
     return df
 ```

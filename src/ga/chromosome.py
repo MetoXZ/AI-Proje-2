@@ -111,16 +111,6 @@ def decode_chromosome(
     return StrategyParams(**decoded)
 
 
-def chromosome_to_dict(
-    individual: Sequence[float | int],
-    *,
-    repair: bool = True,
-) -> dict[str, float | int]:
-    """Kromozomu gen adlariyla sozluge donusturur."""
-    params = decode_chromosome(individual, repair=repair)
-    return params.__dict__.copy()
-
-
 def repair_individual(
     individual: list[float | int],
     *,

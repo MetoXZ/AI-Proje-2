@@ -38,12 +38,12 @@ Bu projede, Genetik Algoritmalar (GA) kullanilarak Bitcoin (BTC) fiyat hareketle
 
 | Faz | Baslik | Gun | Durum |
 |-----|--------|-----|-------|
-| [Faz 1](./fazlar/FAZ_1_ARASTIRMA_VE_PLANLAMA.md) | Arastirma ve Planlama | Gun 1 - Sabah | Beklemede |
-| [Faz 2](./fazlar/FAZ_2_VERI_TOPLAMA_VE_ON_ISLEME.md) | Veri Toplama ve On Isleme | Gun 1 - Ogleden Sonra | Beklemede |
-| [Faz 3](./fazlar/FAZ_3_GENETIK_ALGORITMA_TASARIMI.md) | Genetik Algoritma Tasarimi ve Gelistirme | Gun 2 - Sabah | Beklemede |
-| [Faz 4](./fazlar/FAZ_4_TRADING_STRATEJISI_VE_ENTEGRASYON.md) | Trading Stratejisi ve Entegrasyon | Gun 2 - Ogleden Sonra | Beklemede |
-| [Faz 5](./fazlar/FAZ_5_DENEYSEL_CALISMALAR.md) | Deneysel Calismalar ve Optimizasyon | Gun 3 (Tam Gun) | Beklemede |
-| [Faz 6](./fazlar/FAZ_6_RAPOR_VE_SUNUM.md) | Rapor Yazimi ve Demo Video | Gun 4 (Tam Gun) | Beklemede |
+| [Faz 1](./fazlar/FAZ_1_ARASTIRMA_VE_PLANLAMA.md) | Arastirma ve Planlama | Gun 1 - Sabah | Tamamlandi |
+| [Faz 2](./fazlar/FAZ_2_VERI_TOPLAMA_VE_ON_ISLEME.md) | Veri Toplama ve On Isleme | Gun 1 - Ogleden Sonra | Tamamlandi |
+| [Faz 3](./fazlar/FAZ_3_GENETIK_ALGORITMA_TASARIMI.md) | Genetik Algoritma Tasarimi ve Gelistirme | Gun 2 - Sabah | Tamamlandi |
+| [Faz 4](./fazlar/FAZ_4_TRADING_STRATEJISI_VE_ENTEGRASYON.md) | Trading Stratejisi ve Entegrasyon | Gun 2 - Ogleden Sonra | Tamamlandi |
+| [Faz 5](./fazlar/FAZ_5_DENEYSEL_CALISMALAR.md) | Deneysel Calismalar ve Optimizasyon | Gun 3 (Tam Gun) | Tamamlandi |
+| [Faz 6](./fazlar/FAZ_6_RAPOR_VE_SUNUM.md) | Rapor Yazimi ve Demo Video | Gun 4 (Tam Gun) | Devam Ediyor |
 
 ---
 
@@ -87,14 +87,14 @@ Bu projede, Genetik Algoritmalar (GA) kullanilarak Bitcoin (BTC) fiyat hareketle
 | Kategori | Teknoloji |
 |----------|-----------|
 | **Programlama Dili** | Python 3.10+ |
-| **Veri Toplama** | `yfinance`, `ccxt`, `binance-connector` |
+| **Veri Toplama** | `yfinance` |
 | **Veri Isleme** | `pandas`, `numpy` |
-| **Teknik Analiz** | `ta-lib` veya `pandas-ta` |
-| **Genetik Algoritma** | `DEAP` (Distributed Evolutionary Algorithms in Python) |
-| **Gorsellesitirme** | `matplotlib`, `plotly`, `seaborn` |
-| **Backtesting** | `backtrader` veya ozel gelistirme |
+| **Teknik Analiz** | Ozel implementasyon (`pandas` / `numpy` ile sifirdan kodlandi) |
+| **Genetik Algoritma** | Ozel GA motoru (`chromosome.py`, `operators.py`, `engine.py`, `fitness.py`) |
+| **Gorsellesitirme** | `matplotlib` |
+| **Backtesting** | Ozel vektorel backtesting motoru (`backtest.py`) |
 | **Versiyon Kontrolu** | Git & GitHub |
-| **Gelistirme Ortami** | VS Code / PyCharm / Jupyter Notebook |
+| **Gelistirme Ortami** | VS Code / PyCharm |
 
 ---
 
@@ -133,7 +133,7 @@ Bu projede, Genetik Algoritmalar (GA) kullanilarak Bitcoin (BTC) fiyat hareketle
 ## Is Bolumu Detayi
 
 ### Mert - Genetik Algoritma Cekirdek Gelistirici
-- GA motorunun tasarimi ve kodlanmasi (DEAP kutuphanesi)
+- GA motorunun tasarimi ve kodlanmasi (ozel implementasyon)
 - Kromozom yapisinin belirlenmesi
 - Fitness fonksiyonunun tasarimi ve implementasyonu
 - Secim, caprazlama ve mutasyon operatörlerinin implementasyonu

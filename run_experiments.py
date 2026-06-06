@@ -4,10 +4,10 @@ Faz 5: Deneysel Calismalar ve Sonuc Tablolari
 Tum deneyleri sistematik olarak calistirir ve sonuclari kaydeder:
   5.1  Temel Deney (Baseline)
   5.2  Parametre Duyarlilik Analizi
-  5.4  Walk-Forward Validation
-  5.5  Benchmark Karsilastirmasi
-  5.6  Gorsellesitirme (plots.py)
-  5.7  Sonuc Tablolari (CSV)
+  5.3  Walk-Forward Validation
+  5.4  Benchmark Karsilastirmasi
+  5.5  Gorsellesitirme (plots.py)
+  5.6  Sonuc Tablolari (CSV)
 """
 from __future__ import annotations
 
@@ -41,9 +41,9 @@ def _load_data():
     df = clean_data(df)
     df = calculate_indicators(df)
     train_df, test_df = split_train_test(df, data_cfg.train_end_date, data_cfg.test_start_date)
-    train_close = train_df["Close"].to_numpy(dtype=np.float64)
+    _train_close = train_df["Close"].to_numpy(dtype=np.float64)  # noqa: F841 (unused, kept for reference)
     test_close = test_df["Close"].to_numpy(dtype=np.float64)
-    return df, train_df, test_df, train_close, test_close
+    return df, train_df, test_df, test_close
 
 
 def _run_single_experiment(
@@ -214,13 +214,13 @@ def run_parameter_sensitivity(train_data, test_data, strat_cfg):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 5.4 WALK-FORWARD VALIDATION
+# 5.3 WALK-FORWARD VALIDATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 def run_walk_forward(df_full, strat_cfg):
     """Walk-forward validation: kayan pencere ile overfitting kontrolu."""
-    print("\n[5.4] Walk-Forward Validation...")
+    print("\n[5.3] Walk-Forward Validation...")
 
     periods = [
         ("2018-01-01", "2020-12-31", "2021-01-01", "2021-12-31"),
@@ -280,13 +280,13 @@ def run_walk_forward(df_full, strat_cfg):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 5.5 BENCHMARK KARSILASTIRMASI
+# 5.4 BENCHMARK KARSILASTIRMASI
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 def run_benchmark_comparison(test_data, test_close, strat_cfg, ga_best_individual):
     """GA optimize stratejisi vs benchmark stratejileri."""
-    print("\n[5.5] Benchmark Karsilastirmasi...")
+    print("\n[5.4] Benchmark Karsilastirmasi...")
 
     backtest_kwargs = dict(
         initial_capital=strat_cfg.initial_capital,
@@ -333,7 +333,7 @@ def run_benchmark_comparison(test_data, test_close, strat_cfg, ga_best_individua
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 5.6 GORSELLESITIRME
+# 5.5 GORSELLESITIRME
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -341,7 +341,7 @@ def run_visualization(
     baseline_result, test_df, test_close, benchmark_results, sensitivity_df
 ):
     """Tum grafikleri olusturur."""
-    print("\n[5.6] Gorsellesitirme...")
+    print("\n[5.5] Gorsellesitirme...")
 
     from src.visualization.plots import (
         plot_fitness_evolution,
@@ -437,8 +437,8 @@ def main():
 
     # Veri yukle
     print("\nVeri yukleniyor...")
-    df_full, train_df, test_df, train_close, test_close = _load_data()
-    print(f"  Train: {len(train_close)} gun | Test: {len(test_close)} gun")
+    df_full, train_df, test_df, test_close = _load_data()
+    print(f"  Train: {len(train_df)} gun | Test: {len(test_close)} gun")
 
     t0 = time.time()
 
@@ -448,15 +448,15 @@ def main():
     # 5.2 Parametre Duyarlilik
     sensitivity_df = run_parameter_sensitivity(train_df, test_df, strat_cfg)
 
-    # 5.4 Walk-Forward Validation
+    # 5.3 Walk-Forward Validation
     wf_df = run_walk_forward(df_full, strat_cfg)
 
-    # 5.5 Benchmark Karsilastirmasi
+    # 5.4 Benchmark Karsilastirmasi
     benchmark_results = run_benchmark_comparison(
         test_df, test_close, strat_cfg, baseline_result["best_individual"]
     )
 
-    # 5.6 Gorsellesitirme
+    # 5.5 Gorsellesitirme
     run_visualization(
         baseline_result, test_df, test_close, benchmark_results, sensitivity_df
     )

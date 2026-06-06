@@ -2,7 +2,7 @@
 
 **Sure:** Gun 2 - Ogleden Sonra (1 Haziran Pazar)
 **Tarih:** 1 Haziran 2026
-**Durum:** Beklemede
+**Durum:** Tamamlandi
 **Sorumlu:** Mert Kerem (Ana), Mert (Destek)
 **Bagimlilik:** Faz 3 (ayni gunun sabahi)
 
@@ -115,8 +115,10 @@ def generate_composite_signal(data, params):
 **Sorumlu:** Mert Kerem & Mert
 **Sure:** 1.5 saat (14:30-16:00)
 
-- [ ] `src/strategy/backtest.py` modulunun gelistirilmesi
-- [ ] Backtesting motoru:
+- [x] `src/strategy/backtest.py` modulunun gelistirilmesi
+- [x] Backtesting motoru:
+
+> **Not:** Asagidaki class-based event-driven backtest taslagi yerine, performans icin **vektörel backtesting** (`run_backtest_fast`) yaklasimiyla implement edildi. Bu yaklasim pandas vektörel islemleri kullanarak dongü (loop) yerine toplu hesaplama yapar ve GA fitness degerlendirmesini onemli olcude hizlandirir.
 
 ```python
 class Backtester:
@@ -278,9 +280,11 @@ def evaluate_individual(individual, train_data):
     return (metrics['sharpe_ratio'],)
 ```
 
-- [ ] DEAP toolbox'a fitness fonksiyonunun kaydedilmesi:
+- [x] Özel GA motoruna fitness fonksiyonunun entegre edilmesi:
 ```python
-toolbox.register("evaluate", evaluate_individual, train_data=train_data)
+# Özel GA motorunda fitness fonksiyonu dogrudan engine.py icinde cagirilir
+# DEAP toolbox kullanilmadi, bunun yerine:
+fitnesses = np.array([evaluate_individual(ind, train_data) for ind in population])
 ```
 
 ### 4.5 Benchmark Stratejileri

@@ -28,8 +28,7 @@ pip install -r requirements.txt
 
 ```
 ├── config/
-│   ├── config.py              # Proje konfigurasyonlari (DataClass)
-│   └── config.yaml            # GA ve strateji parametreleri
+│   └── config.py              # Proje konfigurasyonlari (DataClass)
 ├── src/
 │   ├── data/
 │   │   ├── collector.py       # BTC veri toplama (yfinance)
@@ -50,12 +49,11 @@ pip install -r requirements.txt
 │   ├── Project 2 Report Template - EN.docx
 │   ├── Literature_Review.docx # Literatur taramasi (11 kaynak)
 │   ├── teknoloji_secim_raporu.md
-│   └── Proje_On_Analiz_Raporu.md
+│   └── mert_rapor_notlari.md
 ├── results/
 │   ├── figures/               # Cikti grafikleri
 │   ├── tables/                # Sonuc tablolari
 │   └── logs/                  # GA calisma loglari
-├── notebooks/                 # Jupyter notebook'lar
 ├── tests/                     # Birim testleri
 ├── fazlar/                    # Proje faz planlama dokumanlari
 ├── ROADMAP.md                 # Proje yol haritasi

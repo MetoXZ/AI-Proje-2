@@ -2,7 +2,7 @@
 
 **Sure:** Gun 4 - Tam Gun (5-6 Haziran, Gelecek Hafta)
 **Tarih:** 5-6 Haziran 2026
-**Durum:** Beklemede
+**Durum:** Devam Ediyor
 **Sorumlu:** Gorkem Ege (Ana), Tum Takim
 **Bagimlilik:** Faz 5 tamamlanmis olmali (onceki hafta)
 
@@ -51,12 +51,10 @@ Proje raporunu template'e uygun sekilde yazmak, demo videoyu hazirlamak ve tum t
 - [ ] Kullanilan yapay zeka yontemi: Genetik Algoritmalar
 - [ ] Gelistirme ortami: Python 3.10+, VS Code/PyCharm
 - [ ] Kutuphaneler ve versiyonlar:
-  - DEAP (GA implementasyonu)
-  - pandas, numpy (veri isleme)
-  - pandas/numpy (teknik indikatörler ve vektorel hesaplama)
+  - Özel GA Motoru (custom, numpy/pandas tabanli - DEAP kullanilmadi)
+  - pandas, numpy (veri isleme, teknik indikatörler ve vektörel hesaplama)
   - yfinance (veri toplama)
-  - matplotlib, plotly (gorsellesitirme)
-  - scikit-learn (yardimci fonksiyonlar)
+  - matplotlib (gorsellesitirme)
 
 #### Bolum 4: Onerilen Yontem (1.5 sayfa)
 **Sorumlu:** Mert & Mert Kerem

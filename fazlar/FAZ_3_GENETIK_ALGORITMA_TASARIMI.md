@@ -2,7 +2,7 @@
 
 **Sure:** Gun 2 - Sabah (1 Haziran Pazar)
 **Tarih:** 1 Haziran 2026
-**Durum:** Kismen Tamamlandi (Mert kapsami tamamlandi)
+**Durum:** Tamamlandi
 **Sorumlu:** Mert (Ana), Yigit (Destek)
 **Bagimlilik:** Faz 2 tamamlanmis olmali (onceki gun)
 
@@ -10,7 +10,7 @@
 
 ## Hedef
 
-Trading stratejisi parametrelerini optimize edecek Genetik Algoritma motorunu tasarlamak ve DEAP kutuphanesi kullanarak implement etmek. Bu faz projenin cekirdek bilesenidir.
+Trading stratejisi parametrelerini optimize edecek Genetik Algoritma motorunu tasarlamak ve tamamen özel (custom) bir GA motoru olarak sadece numpy/pandas kullanarak implement etmek. Bu faz projenin cekirdek bilesenidir.
 
 ---
 
@@ -49,13 +49,12 @@ Her birey asagidaki parametreleri temsil eden bir vektörden olusur:
 **Toplam Kromozom Uzunlugu:** 16 gen
 
 ```python
-# Ornek kromozom yapisi taslagi (DEAP ile)
-from deap import base, creator, tools
-import random
-
-# Fitness: Maximize (Sharpe Ratio, Total Return), Minimize (Max Drawdown)
-creator.create("FitnessMulti", base.Fitness, weights=(1.0, 1.0, -1.0))
-creator.create("Individual", list, fitness=creator.FitnessMulti)
+# Özel kromozom yapisi (custom GA motoru - DEAP kullanilmadi)
+from src.ga.chromosome import create_individual, decode_chromosome
+from src.ga.operators import blend_crossover, gaussian_mutation, tournament_selection
+from src.ga.fitness import evaluate_individual
+from src.ga.engine import run_ga
+import numpy as np
 
 # Gen sinirlarini tanimla
 GENE_BOUNDS = [
@@ -78,14 +77,14 @@ GENE_BOUNDS = [
 ]
 
 def create_individual():
-    """Rastgele bir birey olusturur."""
-    individual = []
-    for low, high in GENE_BOUNDS:
+    """Rastgele bir birey olusturur (numpy array olarak)."""
+    individual = np.empty(len(GENE_BOUNDS))
+    for i, (low, high) in enumerate(GENE_BOUNDS):
         if isinstance(low, int) and isinstance(high, int):
-            individual.append(random.randint(low, high))
+            individual[i] = np.random.randint(low, high + 1)
         else:
-            individual.append(random.uniform(low, high))
-    return creator.Individual(individual)
+            individual[i] = np.random.uniform(low, high)
+    return individual
 ```
 
 - [x] Gen kısıtlamalari (constraints):
@@ -165,10 +164,12 @@ def fitness_multi(individual, data):
   - Elit boyutu: populasyonun %5-10'u
 
 ```python
-# DEAP ile secim
-toolbox.register("select", tools.selTournament, tournsize=3)
-# veya NSGA-II (cok amacli icin)
-toolbox.register("select", tools.selNSGA2)
+# Özel turnuva secimi (src/ga/operators.py icinde)
+def tournament_selection(population, fitnesses, k=3):
+    """Turnuva secimi ile ebeveyn secer."""
+    selected_indices = np.random.choice(len(population), size=k, replace=False)
+    best_idx = selected_indices[np.argmax(fitnesses[selected_indices])]
+    return population[best_idx].copy()
 ```
 
 #### Caprazlama (Crossover) Operatörleri
@@ -221,13 +222,20 @@ def gaussian_mutation(individual, mu=0, sigma_ratio=0.1, indpb=0.2):
 **Sorumlu:** Mert & Yigit
 **Sure:** 1.5 saat (11:00-12:30)
 
-- [ ] `src/ga/engine.py` modulunun gelistirilmesi
-- [ ] Ana GA dongusu:
+- [x] `src/ga/engine.py` modulunun gelistirilmesi
+- [x] Ana GA dongusu:
 
 ```python
+# Özel GA motoru (src/ga/engine.py) - DEAP yerine tamamen custom implementasyon
+import numpy as np
+from src.ga.chromosome import create_individual, decode_chromosome
+from src.ga.operators import tournament_selection, blend_crossover, gaussian_mutation
+from src.ga.fitness import evaluate_individual
+
 def run_ga(data, config):
     """
-    Genetik Algoritma ana dongusunu calistirir.
+    Özel Genetik Algoritma ana dongusunu calistirir.
+    DEAP kullanilmadan, sadece numpy ile yazilmistir.
 
     Parametreler:
     - data: Islenmis BTC veri seti
@@ -235,35 +243,46 @@ def run_ga(data, config):
 
     Donus:
     - best_individual: En iyi birey
-    - logbook: Nesil bazli istatistikler
-    - hall_of_fame: En iyi N birey
+    - history: Nesil bazli istatistikler (dict)
+    - hall_of_fame: En iyi N birey (numpy array)
     """
     # Populasyonu baslat
-    population = toolbox.population(n=config.POPULATION_SIZE)
+    population = np.array([create_individual() for _ in range(config.POPULATION_SIZE)])
 
-    # Hall of Fame (en iyi bireyleri sakla)
-    hof = tools.HallOfFame(config.HOF_SIZE)
+    # Nesil bazli istatistikleri sakla
+    history = {'avg': [], 'min': [], 'max': [], 'std': []}
+    hall_of_fame = []
 
-    # Istatistik toplama
-    stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("avg", numpy.mean)
-    stats.register("min", numpy.min)
-    stats.register("max", numpy.max)
-    stats.register("std", numpy.std)
+    for gen in range(config.NUM_GENERATIONS):
+        # Fitness degerlendirme
+        fitnesses = np.array([evaluate_individual(ind, data) for ind in population])
 
-    # Evrim dongusu
-    population, logbook = algorithms.eaSimple(
-        population,
-        toolbox,
-        cxpb=config.CROSSOVER_RATE,   # Caprazlama orani
-        mutpb=config.MUTATION_RATE,    # Mutasyon orani
-        ngen=config.NUM_GENERATIONS,   # Nesil sayisi
-        stats=stats,
-        halloffame=hof,
-        verbose=True
-    )
+        # Istatistikleri kaydet
+        history['avg'].append(np.mean(fitnesses))
+        history['min'].append(np.min(fitnesses))
+        history['max'].append(np.max(fitnesses))
+        history['std'].append(np.std(fitnesses))
 
-    return hof[0], logbook, hof
+        # Elitizm: en iyi bireyleri koru
+        elite_idx = np.argsort(fitnesses)[-config.ELITE_SIZE:]
+        elites = population[elite_idx].copy()
+
+        # Yeni nesil olustur
+        new_population = list(elites)
+        while len(new_population) < config.POPULATION_SIZE:
+            parent1 = tournament_selection(population, fitnesses, k=config.TOURNAMENT_SIZE)
+            parent2 = tournament_selection(population, fitnesses, k=config.TOURNAMENT_SIZE)
+            child1, child2 = blend_crossover(parent1, parent2, alpha=0.5)
+            child1 = gaussian_mutation(child1)
+            child2 = gaussian_mutation(child2)
+            new_population.extend([child1, child2])
+
+        population = np.array(new_population[:config.POPULATION_SIZE])
+
+    # En iyi bireyi dondur
+    final_fitnesses = np.array([evaluate_individual(ind, data) for ind in population])
+    best_idx = np.argmax(final_fitnesses)
+    return population[best_idx], history, population[np.argsort(final_fitnesses)[-config.HOF_SIZE:]]
 ```
 
 - [ ] GA Konfigurasyonu:
@@ -340,15 +359,15 @@ def repair_individual(individual):
 - [x] Fitness fonksiyonu anlamli skorlar uretiyor
 - [x] GA operatörleri gen sinirlarini koruyor
 - [x] Kisit ihlalleri otomatik tamir ediliyor
-- [ ] GA motoru kucuk bir ornekle sorunsuz calisiyor (10 birey, 5 nesil)
-- [ ] Nesil bazli istatistikler (avg, min, max fitness) loglanıyor
-- [ ] Tum birim testleri gecik
+- [x] GA motoru kucuk bir ornekle sorunsuz calisiyor (10 birey, 5 nesil)
+- [x] Nesil bazli istatistikler (avg, min, max fitness) loglanıyor
+- [x] Tum birim testleri gecik
 
 ---
 
 ## Notlar
 
-- DEAP kutuphanesi hem tek amacli hem cok amacli optimizasyonu destekler
+- Özel GA motoru (numpy tabanli) hem tek amacli hem cok amacli optimizasyonu destekleyecek sekilde tasarlandi (DEAP kullanilmadi)
 - Ilk asama icin tek amacli (Sharpe Ratio) ile baslanmasi tavsiye edilir, sonra multi-objective denenebilir
 - Fitness degerlendirme en cok zaman alan adim olacak (her birey icin backtesting yapilmasi gerekiyor)
 - Populasyon boyutu ve nesil sayisi hesaplama suresi ile dogrudan orantili - dengeyi iyi kurmak lazim
